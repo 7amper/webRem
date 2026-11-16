@@ -1,39 +1,49 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rock Pi S — Сканер трубопровода</title>
+<title>Rock Pi S — Pipe Scanner</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header>
-  <div class="brand">Сканер трубопровода</div>
+  <div class="brand">Pipe Scanner</div>
   <nav class="tabs">
-    <button class="tab active" data-tab="config">Конфигурация</button>
-    <button class="tab" data-tab="work">Работа</button>
-    <button class="tab" data-tab="task">Задание сканирования</button>
+    <button class="tab active" data-tab="config">Configuration</button>
+    <button class="tab" data-tab="work">Work</button>
+    <button class="tab" data-tab="manual">Drive Control</button>
+    <button class="tab" data-tab="task">Scan Task</button>
   </nav>
+  <div class="connbox">
+    <label class="switch">
+      <input type="checkbox" id="connSwitch">
+      <span class="slider"></span>
+    </label>
+    <span id="connText">Disconnected</span>
+    <span id="dotServer" class="dot" title="Modbus server (ping)"></span>
+    <span id="dotClient" class="dot" title="UDP client (ping)"></span>
+  </div>
   <div class="pills">
-    <span id="miniConn" class="pill off">связь: нет</span>
-    <span id="miniUdp"  class="pill off">UDP: нет</span>
+    <span id="miniConn" class="pill off">link: down</span>
+    <span id="miniUdp"  class="pill off">UDP: off</span>
   </div>
 </header>
 
 <main>
 
-<!-- ================= КОНФИГУРАЦИЯ ================= -->
+<!-- ================= CONFIGURATION ================= -->
 <section id="tab-config" class="tabpage active">
   <div class="grid2">
 
     <fieldset>
-      <legend>Связь</legend>
-      <label>Адрес TCP <input type="text" data-path="link.httpAddr"></label>
-      <label>Адрес UDP <input type="text" data-path="link.udpAddr"></label>
-      <label>Периодичность опроса, раз/сек <input type="number" min="1" max="200" data-path="link.pollHz" data-num="1"></label>
-      <label>Отправка UDP не реже, мм <input type="number" step="0.1" data-path="link.udpIntervalMm" data-num="1"></label>
-      <label>Порядок байт UDP
+      <legend>Communication</legend>
+      <label>TCP address <input type="text" data-path="link.httpAddr"></label>
+      <label>UDP address <input type="text" data-path="link.udpAddr"></label>
+      <label>Poll rate, times/sec <input type="number" min="1" max="200" data-path="link.pollHz" data-num="1"></label>
+      <label>UDP send interval no less than, mm <input type="number" step="0.1" data-path="link.udpIntervalMm" data-num="1"></label>
+      <label>UDP byte order
         <select data-path="link.udpEndian">
           <option value="little">little-endian</option>
           <option value="big">big-endian</option>
@@ -43,19 +53,19 @@
 
     <fieldset>
       <legend>Modbus</legend>
-      <label>Хост <input type="text" data-path="modbus.host"></label>
-      <label>Порт <input type="number" data-path="modbus.port" data-num="1"></label>
-      <label>Таймаут, мс <input type="number" data-path="modbus.timeoutMs" data-num="1"></label>
-      <label>Порядок слов 32-bit
+      <label>Host <input type="text" data-path="modbus.host"></label>
+      <label>Port <input type="number" data-path="modbus.port" data-num="1"></label>
+      <label>Timeout, ms <input type="number" data-path="modbus.timeoutMs" data-num="1"></label>
+      <label>32-bit word order
         <select data-path="modbus.wordOrder">
-          <option value="big">старшее слово первым</option>
-          <option value="little">младшее слово первым</option>
+          <option value="big">most significant word first</option>
+          <option value="little">least significant word first</option>
         </select>
       </label>
-      <label>Смещение адресов <input type="number" data-path="modbus.addrOffset" data-num="1"></label>
+      <label>Address offset <input type="number" data-path="modbus.addrOffset" data-num="1"></label>
 
       <details open>
-        <summary>Адреса управления</summary>
+        <summary>Control addresses</summary>
         <div class="regs">
           <label>Enable <input type="text" data-path="modbus.regEnable"></label>
           <label>CurrentSet <input type="text" data-path="modbus.regCurrentSet"></label>
@@ -69,7 +79,7 @@
       </details>
 
       <details>
-        <summary>Адреса чтения</summary>
+        <summary>Read addresses</summary>
         <div class="regs">
           <label>Input <input type="text" data-path="modbus.regInput"></label>
           <label>Output <input type="text" data-path="modbus.regOutputRead"></label>
@@ -83,10 +93,10 @@
     </fieldset>
 
     <fieldset>
-      <legend>Привода</legend>
+      <legend>Drives</legend>
       <table class="tbl">
         <thead>
-          <tr><th>Ось</th><th>Адрес</th><th>Макс. скорость, мм/с</th><th>Мин. скорость, мм/с</th><th>Коэф. положения, имп/мм</th><th>Инверсия</th></tr>
+          <tr><th>Axis</th><th>Address</th><th>Max speed, mm/s</th><th>Min speed, mm/s</th><th>Position coefficient, imp/mm</th><th>Invert</th></tr>
         </thead>
         <tbody>
           <tr>
@@ -107,40 +117,40 @@
           </tr>
         </tbody>
       </table>
-      <p class="hint">Статическая поправка положения обновляется автоматически при выполнении привязки.</p>
+      <p class="hint">The static position offset is updated automatically when homing is performed.</p>
     </fieldset>
 
     <fieldset>
-      <legend>Построчное сканирование</legend>
-      <label>Задание положения трубопровода
+      <legend>Line Scanning</legend>
+      <label>Pipe orientation
         <select data-path="scan.orientation">
-          <option value="horizontal">горизонтальное</option>
-          <option value="vertical">вертикальное</option>
+          <option value="horizontal">horizontal</option>
+          <option value="vertical">vertical</option>
         </select>
       </label>
-      <label>Длина трубы, мм <input type="number" data-path="scan.pipeLength" data-num="1"></label>
-      <label>Диаметр трубы, мм <input type="number" data-path="scan.pipeDiameter" data-num="1"></label>
-      <label>Начальная точка X, мм <input type="number" data-path="scan.startX" data-num="1"></label>
-      <label>Начальная точка Y, мм <input type="number" data-path="scan.startY" data-num="1"></label>
-      <label>Диапазон по X, мм <input type="number" data-path="scan.rangeX" data-num="1"></label>
-      <label>Диапазон по Y, мм <input type="number" data-path="scan.rangeY" data-num="1"></label>
-      <label>Шаг, мм <input type="number" data-path="scan.step" data-num="1"></label>
-      <label>Скорость по X, мм/с <input type="number" data-path="scan.speedX" data-num="1"></label>
-      <label>Скорость по Y, мм/с <input type="number" data-path="scan.speedY" data-num="1"></label>
-      <label>Направление строк
+      <label>Pipe length, mm <input type="number" data-path="scan.pipeLength" data-num="1"></label>
+      <label>Pipe diameter, mm <input type="number" data-path="scan.pipeDiameter" data-num="1"></label>
+      <label>Start point X, mm <input type="number" data-path="scan.startX" data-num="1"></label>
+      <label>Start point Y, mm <input type="number" data-path="scan.startY" data-num="1"></label>
+      <label>Range along X, mm <input type="number" data-path="scan.rangeX" data-num="1"></label>
+      <label>Range along Y, mm <input type="number" data-path="scan.rangeY" data-num="1"></label>
+      <label>Step, mm <input type="number" data-path="scan.step" data-num="1"></label>
+      <label>Speed along X, mm/s <input type="number" data-path="scan.speedX" data-num="1"></label>
+      <label>Speed along Y, mm/s <input type="number" data-path="scan.speedY" data-num="1"></label>
+      <label>Line direction
         <select data-path="scan.direction">
-          <option value="along">вдоль</option>
-          <option value="across">поперёк</option>
+          <option value="along">along</option>
+          <option value="across">across</option>
         </select>
       </label>
     </fieldset>
 
     <fieldset>
-      <legend>Интерфейс</legend>
-      <label>Тема
+      <legend>Interface</legend>
+      <label>Theme
         <select id="themeSel" data-path="ui.theme">
-          <option value="dark">тёмный</option>
-          <option value="light">светлый</option>
+          <option value="dark">dark</option>
+          <option value="light">light</option>
         </select>
       </label>
     </fieldset>
@@ -148,158 +158,145 @@
   </div>
 
   <div class="footerbar">
-    <button id="saveCfg" class="primary">Сохранить конфигурацию</button>
+    <button id="saveCfg" class="primary">Save configuration</button>
     <span id="saveMsg" class="msg"></span>
   </div>
 </section>
 
-<!-- ================= РАБОТА ================= -->
+<!-- ================= WORK ================= -->
 <section id="tab-work" class="tabpage">
   <div class="work">
 
-    <fieldset class="conn">
-      <legend>Подключение</legend>
-      <div class="row">
-        <span class="dot" id="dotServer"></span> Сервер (ping): <b id="txtServer">—</b>
-      </div>
-      <div class="row">
-        <span class="dot" id="dotClient"></span> Клиент UDP (ping): <b id="txtClient">—</b>
-      </div>
-      <div class="row">
-        <label class="switch">
-          <input type="checkbox" id="connSwitch">
-          <span class="slider"></span>
-        </label>
-        <span id="connText">Отключено</span>
-      </div>
-      <div class="err" id="linkErr"></div>
-    </fieldset>
-
     <fieldset class="view">
-      <legend>Трубопровод</legend>
+      <legend>Pipeline</legend>
+      <div class="err" id="linkErr"></div>
       <div class="viewhead">
-        <label class="chk"><input type="checkbox" id="camFollow"> камера над тележкой</label>
-        <span class="hint">колесо — зум, ЛКМ — вращение/сдвиг, стрелки — обзор, клик по трубе — точка</span>
+        <label class="chk"><input type="checkbox" id="camFollow"> camera above the cart</label>
+        <span class="hint">wheel — zoom, left mouse button — rotate/pan, arrow keys — view, click on the pipe — point</span>
       </div>
       <div class="canvaswrap">
         <canvas id="view3d"></canvas>
         <div id="pickPopup" class="popup hidden"></div>
       </div>
       <div class="viewfoot">
-        <button id="btnStart" class="primary">Начать</button>
-        <button id="btnStop">Остановить</button>
-        <button id="btnReset">Сбросить</button>
+        <button id="btnStart" class="primary">Start</button>
+        <button id="btnStop">Stop</button>
+        <button id="btnReset">Reset</button>
         <span class="udpind" id="udpInd">UDP</span>
         <span class="hint" id="scanInfo"></span>
       </div>
     </fieldset>
 
-    <fieldset class="manual">
-      <legend>Ручное управление приводами</legend>
-
-      <div class="axis" data-axis="X">
-        <h4>Ось X <span class="addr" id="unit-X"></span></h4>
-        <div class="readouts">
-          <span>Положение: <b id="pos-X">0.0</b> мм</span>
-          <span>Скорость: <b id="spd-X">0.0</b> мм/с</span>
-          <span>Ток: <b id="cur-X">0</b></span>
-          <span>Отказы: <b id="flt-X">0x0000</b></span>
-          <span>Состояние: <b id="sts-X">0x0000</b></span>
-        </div>
-        <div class="row">
-          <input id="spdset-X" type="number" value="10" step="1" class="num">
-          <button data-man="speed-set" data-axis="X">Задать скорость</button>
-          <button data-man="speed-min" data-axis="X">Мин</button>
-          <button data-man="speed-max" data-axis="X">Макс</button>
-          <button data-man="stop" data-axis="X" class="danger">Стоп</button>
-        </div>
-        <div class="row">
-          <input id="posset-X" type="number" value="0" step="1" class="num">
-          <button data-man="move-to" data-axis="X">В положение</button>
-          <button data-man="home" data-axis="X">Привязка</button>
-        </div>
-        <div class="row">
-          <button data-man="enable" data-axis="X">Включить</button>
-          <button data-man="disable" data-axis="X">Отключить</button>
-        </div>
-        <div class="io">
-          <div class="io-block"><span class="io-title">Входы</span><div class="leds in" id="in-X"></div></div>
-          <div class="io-block"><span class="io-title">Выходы</span><div class="leds out" id="out-X"></div></div>
-        </div>
-      </div>
-
-      <div class="axis" data-axis="Y">
-        <h4>Ось Y <span class="addr" id="unit-Y"></span></h4>
-        <div class="readouts">
-          <span>Положение: <b id="pos-Y">0.0</b> мм</span>
-          <span>Скорость: <b id="spd-Y">0.0</b> мм/с</span>
-          <span>Ток: <b id="cur-Y">0</b></span>
-          <span>Отказы: <b id="flt-Y">0x0000</b></span>
-          <span>Состояние: <b id="sts-Y">0x0000</b></span>
-        </div>
-        <div class="row">
-          <input id="spdset-Y" type="number" value="10" step="1" class="num">
-          <button data-man="speed-set" data-axis="Y">Задать скорость</button>
-          <button data-man="speed-min" data-axis="Y">Мин</button>
-          <button data-man="speed-max" data-axis="Y">Макс</button>
-          <button data-man="stop" data-axis="Y" class="danger">Стоп</button>
-        </div>
-        <div class="row">
-          <input id="posset-Y" type="number" value="0" step="1" class="num">
-          <button data-man="move-to" data-axis="Y">В положение</button>
-          <button data-man="home" data-axis="Y">Привязка</button>
-        </div>
-        <div class="row">
-          <button data-man="enable" data-axis="Y">Включить</button>
-          <button data-man="disable" data-axis="Y">Отключить</button>
-        </div>
-        <div class="io">
-          <div class="io-block"><span class="io-title">Входы</span><div class="leds in" id="in-Y"></div></div>
-          <div class="io-block"><span class="io-title">Выходы</span><div class="leds out" id="out-Y"></div></div>
-        </div>
-      </div>
-
-    </fieldset>
   </div>
 </section>
 
-<!-- ================= ЗАДАНИЕ СКАНИРОВАНИЯ ================= -->
+<!-- ================= DRIVE CONTROL ================= -->
+<section id="tab-manual" class="tabpage">
+  <fieldset class="manual">
+    <legend>Manual Drive Control</legend>
+
+    <div class="axis" data-axis="X">
+      <h4>Axis X <span class="addr" id="unit-X"></span></h4>
+      <div class="readouts">
+        <span>Position: <b id="pos-X">0.0</b> mm</span>
+        <span>Speed: <b id="spd-X">0.0</b> mm/s</span>
+        <span>Current: <b id="cur-X">0</b></span>
+        <span>Faults: <b id="flt-X">0x0000</b></span>
+        <span>Status: <b id="sts-X">0x0000</b></span>
+      </div>
+      <div class="row">
+        <input id="spdset-X" type="number" value="10" step="1" class="num">
+        <button data-man="speed-set" data-axis="X">Set speed</button>
+        <button data-man="speed-min" data-axis="X">Min</button>
+        <button data-man="speed-max" data-axis="X">Max</button>
+        <button data-man="stop" data-axis="X" class="danger">Stop</button>
+      </div>
+      <div class="row">
+        <input id="posset-X" type="number" value="0" step="1" class="num">
+        <button data-man="move-to" data-axis="X">Move to position</button>
+        <button data-man="home" data-axis="X">Home</button>
+      </div>
+      <div class="row">
+        <button data-man="enable" data-axis="X">Enable</button>
+        <button data-man="disable" data-axis="X">Disable</button>
+      </div>
+      <div class="io">
+        <div class="io-block"><span class="io-title">Inputs</span><div class="leds in" id="in-X"></div></div>
+        <div class="io-block"><span class="io-title">Outputs</span><div class="leds out" id="out-X"></div></div>
+      </div>
+    </div>
+
+    <div class="axis" data-axis="Y">
+      <h4>Axis Y <span class="addr" id="unit-Y"></span></h4>
+      <div class="readouts">
+        <span>Position: <b id="pos-Y">0.0</b> mm</span>
+        <span>Speed: <b id="spd-Y">0.0</b> mm/s</span>
+        <span>Current: <b id="cur-Y">0</b></span>
+        <span>Faults: <b id="flt-Y">0x0000</b></span>
+        <span>Status: <b id="sts-Y">0x0000</b></span>
+      </div>
+      <div class="row">
+        <input id="spdset-Y" type="number" value="10" step="1" class="num">
+        <button data-man="speed-set" data-axis="Y">Set speed</button>
+        <button data-man="speed-min" data-axis="Y">Min</button>
+        <button data-man="speed-max" data-axis="Y">Max</button>
+        <button data-man="stop" data-axis="Y" class="danger">Stop</button>
+      </div>
+      <div class="row">
+        <input id="posset-Y" type="number" value="0" step="1" class="num">
+        <button data-man="move-to" data-axis="Y">Move to position</button>
+        <button data-man="home" data-axis="Y">Home</button>
+      </div>
+      <div class="row">
+        <button data-man="enable" data-axis="Y">Enable</button>
+        <button data-man="disable" data-axis="Y">Disable</button>
+      </div>
+      <div class="io">
+        <div class="io-block"><span class="io-title">Inputs</span><div class="leds in" id="in-Y"></div></div>
+        <div class="io-block"><span class="io-title">Outputs</span><div class="leds out" id="out-Y"></div></div>
+      </div>
+    </div>
+
+  </fieldset>
+</section>
+
+<!-- ================= SCAN TASK ================= -->
 <section id="tab-task" class="tabpage">
   <div class="grid2">
     <fieldset>
-      <legend>Задание положения трубопровода</legend>
-      <label>Ориентация
+      <legend>Pipe Orientation Task</legend>
+      <label>Orientation
         <select data-path="scan.orientation">
-          <option value="horizontal">горизонтальное</option>
-          <option value="vertical">вертикальное</option>
+          <option value="horizontal">horizontal</option>
+          <option value="vertical">vertical</option>
         </select>
       </label>
-      <label>Длина трубы, мм <input type="number" data-path="scan.pipeLength" data-num="1"></label>
-      <label>Диаметр трубы, мм <input type="number" data-path="scan.pipeDiameter" data-num="1"></label>
+      <label>Pipe length, mm <input type="number" data-path="scan.pipeLength" data-num="1"></label>
+      <label>Pipe diameter, mm <input type="number" data-path="scan.pipeDiameter" data-num="1"></label>
     </fieldset>
 
     <fieldset>
-      <legend>Параметры построчного сканирования</legend>
-      <label>Начальная точка X, мм <input type="number" data-path="scan.startX" data-num="1"></label>
-      <label>Начальная точка Y, мм <input type="number" data-path="scan.startY" data-num="1"></label>
-      <label>Диапазон по X, мм <input type="number" data-path="scan.rangeX" data-num="1"></label>
-      <label>Диапазон по Y, мм <input type="number" data-path="scan.rangeY" data-num="1"></label>
-      <label>Шаг, мм <input type="number" data-path="scan.step" data-num="1"></label>
-      <label>Скорость по X, мм/с <input type="number" data-path="scan.speedX" data-num="1"></label>
-      <label>Скорость по Y, мм/с <input type="number" data-path="scan.speedY" data-num="1"></label>
-      <label>Направление строк
+      <legend>Line Scanning Parameters</legend>
+      <label>Start point X, mm <input type="number" data-path="scan.startX" data-num="1"></label>
+      <label>Start point Y, mm <input type="number" data-path="scan.startY" data-num="1"></label>
+      <label>Range along X, mm <input type="number" data-path="scan.rangeX" data-num="1"></label>
+      <label>Range along Y, mm <input type="number" data-path="scan.rangeY" data-num="1"></label>
+      <label>Step, mm <input type="number" data-path="scan.step" data-num="1"></label>
+      <label>Speed along X, mm/s <input type="number" data-path="scan.speedX" data-num="1"></label>
+      <label>Speed along Y, mm/s <input type="number" data-path="scan.speedY" data-num="1"></label>
+      <label>Line direction
         <select data-path="scan.direction">
-          <option value="along">вдоль</option>
-          <option value="across">поперёк</option>
+          <option value="along">along</option>
+          <option value="across">across</option>
         </select>
       </label>
     </fieldset>
   </div>
 
   <div class="footerbar">
-    <button id="saveTask" class="primary">Сохранить задание</button>
+    <button id="saveTask" class="primary">Save task</button>
     <span id="taskMsg" class="msg"></span>
-    <button id="routePreview">Показать маршрут</button>
+    <button id="routePreview">Show route</button>
     <span id="routeInfo" class="msg"></span>
   </div>
 </section>

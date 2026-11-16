@@ -7,7 +7,6 @@ import (
 	"math"
 	"net"
 
-	//"os/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -99,7 +98,7 @@ func (c *Controller) Close() {
 }
 
 // ---------------------------------------------------------------------------
-// Основной цикл
+// Main loop
 // ---------------------------------------------------------------------------
 
 func (c *Controller) Run(ctx context.Context) {
@@ -131,9 +130,9 @@ func (c *Controller) Run(ctx context.Context) {
 		c.applyConfig()
 		c.poll()
 
-		if time.Since(lastPing) > 2*time.Second {
+		if time.Since(lastPing) > 3*time.Second {
 			lastPing = time.Now()
-			c.checkLinks()
+			go c.checkLinks()
 		}
 	}
 }
@@ -175,7 +174,7 @@ func (c *Controller) poll() {
 		if allOffline {
 			c.mu.Lock()
 			c.connected = false
-			c.linkErr = "потеря связи с приводами"
+			c.linkErr = "connection to drives lost"
 			c.mu.Unlock()
 		}
 	}
@@ -184,22 +183,8 @@ func (c *Controller) poll() {
 }
 
 // ---------------------------------------------------------------------------
-// Проверка доступности (ping)
+// Host availability check (ping)
 // ---------------------------------------------------------------------------
-
-//func pingHost(host string, timeout time.Duration) bool {
-//	if host == "" {
-//		return false
-//	}
-//	if _, err := exec.LookPath("ping"); err != nil {
-//		// ping недоступен — считаем узел доступным (нет способа проверить)
-//		return true
-//	}
-//	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-//	defer cancel()
-//	cmd := exec.CommandContext(ctx, "ping", "-c", "1", "-W", "1", host)
-//	return cmd.Run() == nil
-//}
 
 func (c *Controller) checkLinks() {
 	cc := c.cfg.Get()
@@ -218,7 +203,7 @@ func (c *Controller) checkLinks() {
 	lost := c.connected && !srv
 	if lost {
 		c.connected = false
-		c.linkErr = "потеря связи с сервером"
+		c.linkErr = "connection to the server lost"
 	}
 	c.mu.Unlock()
 
@@ -237,7 +222,7 @@ func (c *Controller) disableAll() {
 }
 
 // ---------------------------------------------------------------------------
-// Подключение / отключение
+// Connect / disconnect
 // ---------------------------------------------------------------------------
 
 func (c *Controller) SetConnected(on bool) error {
@@ -245,7 +230,7 @@ func (c *Controller) SetConnected(on bool) error {
 	if on {
 		addr := net.JoinHostPort(cc.Modbus.Host, strconv.Itoa(cc.Modbus.Port))
 		c.mb.SetAddr(addr)
-		// проверяем, что приводы отвечают
+		// check that the drives respond
 		ok := false
 		for _, name := range c.order {
 			if d := c.ax[name]; d != nil {
@@ -255,7 +240,7 @@ func (c *Controller) SetConnected(on bool) error {
 			}
 		}
 		if !ok {
-			return errors.New("приводы не отвечают по Modbus TCP")
+			return errors.New("drives do not respond over Modbus TCP")
 		}
 		c.mu.Lock()
 		c.connected = true
@@ -285,7 +270,7 @@ func (c *Controller) Connected() bool {
 }
 
 // ---------------------------------------------------------------------------
-// Ручное управление
+// Manual control
 // ---------------------------------------------------------------------------
 
 func (c *Controller) Drive(name string) *modbus.Drive {
@@ -301,7 +286,7 @@ func (c *Controller) AxisNames() []string {
 func (c *Controller) Enable(axis string, on bool) error {
 	d := c.Drive(axis)
 	if d == nil {
-		return errors.New("неизвестная ось " + axis)
+		return errors.New("unknown axis " + axis)
 	}
 	return d.Enable(on)
 }
@@ -309,7 +294,7 @@ func (c *Controller) Enable(axis string, on bool) error {
 func (c *Controller) Speed(axis string, mmps float64) error {
 	d := c.Drive(axis)
 	if d == nil {
-		return errors.New("неизвестная ось " + axis)
+		return errors.New("unknown axis " + axis)
 	}
 	cfg := d.Config()
 	max := cfg.MaxSpeed
@@ -325,7 +310,7 @@ func (c *Controller) Speed(axis string, mmps float64) error {
 func (c *Controller) MoveTo(axis string, mm float64) error {
 	d := c.Drive(axis)
 	if d == nil {
-		return errors.New("неизвестная ось " + axis)
+		return errors.New("unknown axis " + axis)
 	}
 	return d.MoveTo(mm)
 }
@@ -344,7 +329,7 @@ func (c *Controller) Stop(axis string) error {
 	}
 	d := c.Drive(axis)
 	if d == nil {
-		return errors.New("неизвестная ось " + axis)
+		return errors.New("unknown axis " + axis)
 	}
 	return d.Stop()
 }
@@ -352,21 +337,21 @@ func (c *Controller) Stop(axis string) error {
 func (c *Controller) SetOutputs(axis string, mask uint16) error {
 	d := c.Drive(axis)
 	if d == nil {
-		return errors.New("неизвестная ось " + axis)
+		return errors.New("unknown axis " + axis)
 	}
 	return d.SetOutputs(mask)
 }
 
-// Home — привязка оси к указанному положению.
+// Home — binds the axis to the given position.
 func (c *Controller) Home(axis string, posMM float64) error {
 	d := c.Drive(axis)
 	if d == nil {
-		return errors.New("неизвестная ось " + axis)
+		return errors.New("unknown axis " + axis)
 	}
 	if err := d.Home(posMM); err != nil {
 		return err
 	}
-	// сохраняем статическую поправку в конфигурацию
+	// save the static offset into the configuration
 	cc := c.cfg.Get()
 	for i := range cc.Drives {
 		if strings.EqualFold(cc.Drives[i].Name, axis) {
@@ -455,7 +440,7 @@ func (c *Controller) sendUDP() {
 }
 
 // ---------------------------------------------------------------------------
-// Сканирование
+// Scanning
 // ---------------------------------------------------------------------------
 
 func (c *Controller) position() (float64, float64) {
@@ -478,13 +463,13 @@ func (c *Controller) StartScan() error {
 	c.mu.Lock()
 	if c.scanRunning {
 		c.mu.Unlock()
-		return errors.New("сканирование уже выполняется")
+		return errors.New("scanning is already running")
 	}
 	cc := c.cfg.Get()
 	pts := scan.Build(cc.Scan)
 	if len(pts) == 0 {
 		c.mu.Unlock()
-		return errors.New("маршрут пуст")
+		return errors.New("route is empty")
 	}
 	c.scanPts = pts
 	c.scanIdx = 0
@@ -537,10 +522,10 @@ func (c *Controller) scanLoop(pts []scan.Point, cancel chan struct{}) {
 	}()
 
 	cc := c.cfg.Get()
-	tol := 0.5 // мм
+	tol := 0.5 // mm
 
 	for i, p := range pts {
-		// пауза
+		// pause
 		for {
 			c.mu.RLock()
 			paused := c.scanPaused
@@ -607,7 +592,7 @@ func (c *Controller) atTarget(p scan.Point, tol float64) bool {
 }
 
 // ---------------------------------------------------------------------------
-// Состояние для веб-интерфейса
+// State for the web interface
 // ---------------------------------------------------------------------------
 
 func (c *Controller) State() State {
@@ -650,7 +635,7 @@ func (c *Controller) State() State {
 		}
 	}
 
-	// текущее положение — последняя точка «пройденного пути»
+	// current position — the last point of the "traveled path"
 	if c.scanRunning {
 		s.Trail = append(s.Trail, scan.Point{X: s.PosX, Y: s.PosY})
 	}
