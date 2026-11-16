@@ -1,0 +1,73 @@
+{
+  "link": {
+    "httpAddr": "127.0.0.1:3000",
+    "udpAddr": "10.10.10.17:5000",
+    "pollHz": 30,
+    "udpIntervalMm": 0.5,
+    "udpEndian": "little"
+  },
+  "modbus": {
+    "host": "192.168.1.10",
+    "port": 502,
+    "timeoutMs": 300,
+    "wordOrder": "big",
+    "addrOffset": 0,
+    "regEnable": 4096,
+    "regCurrentSet": 4097,
+    "regSpeedSet": 4098,
+    "regAccelerationSet": 4100,
+    "regDecelerationSet": 4102,
+    "regPositionSet": 4104,
+    "regOperationMode": 4106,
+    "regOutput": 4866,
+    "regInput": 4865,
+    "regOutputRead": 4866,
+    "regRealtimeFault1": 4867,
+    "regRealtimeStatus1": 4868,
+    "regCurrentGet": 4869,
+    "regSpeedGet": 4870,
+    "regPositionGet": 4872
+  },
+  "drives": [
+    {
+      "name": "X",
+      "unitId": 1,
+      "maxSpeed": 100,
+      "minSpeed": 1,
+      "gear": 5,
+      "speedCoef": 1,
+      "accel": 1000,
+      "decel": 1000,
+      "invert": false,
+      "offsetMm": 0
+    },
+    {
+      "name": "Y",
+      "unitId": 2,
+      "maxSpeed": 100,
+      "minSpeed": 1,
+      "gear": 5,
+      "speedCoef": 1,
+      "accel": 1000,
+      "decel": 1000,
+      "invert": false,
+      "offsetMm": 0
+    }
+  ],
+  "scan": {
+    "orientation": "vertical",
+    "pipeLength": 1000,
+    "pipeDiameter": 500,
+    "startX": 100,
+    "startY": 100,
+    "rangeX": 500,
+    "rangeY": 500,
+    "step": 10,
+    "speedX": 10,
+    "speedY": 10,
+    "direction": "across"
+  },
+  "ui": {
+    "theme": "dark"
+  }
+}

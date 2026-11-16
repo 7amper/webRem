@@ -1,0 +1,144 @@
+:root{
+  --bg:#12161c; --bg2:#1a2029; --bg3:#222b36;
+  --fg:#dfe6ee; --fg2:#93a3b5; --acc:#3fa7ff; --acc2:#28c76f;
+  --warn:#ffb020; --err:#ff5c5c; --bd:#2c3644;
+}
+body.light{
+  --bg:#eef2f7; --bg2:#ffffff; --bg3:#f2f5f9;
+  --fg:#1c2530; --fg2:#5a6a7d; --acc:#0a72d0; --acc2:#129c53;
+  --warn:#b87700; --err:#c92a2a; --bd:#d3dbe5;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--fg);
+  font:14px/1.4 "Segoe UI",Roboto,Arial,sans-serif;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+
+header{
+  display:flex;align-items:center;gap:16px;padding:8px 14px;
+  background:var(--bg2);border-bottom:1px solid var(--bd);flex:0 0 auto;
+}
+.brand{font-weight:700;letter-spacing:.4px;color:var(--acc)}
+.tabs{display:flex;gap:6px;margin-left:12px}
+.tab{
+  background:transparent;border:1px solid transparent;color:var(--fg2);
+  padding:6px 14px;border-radius:6px;cursor:pointer;font-size:14px;
+}
+.tab:hover{background:var(--bg3);color:var(--fg)}
+.tab.active{background:var(--bg3);border-color:var(--bd);color:var(--fg);font-weight:600}
+.pills{margin-left:auto;display:flex;gap:8px}
+.pill{padding:3px 10px;border-radius:12px;font-size:12px;border:1px solid var(--bd);color:var(--fg2)}
+.pill.on{border-color:var(--acc2);color:var(--acc2)}
+.pill.off{border-color:var(--err);color:var(--err)}
+
+main{flex:1 1 auto;overflow:auto;padding:12px}
+.tabpage{display:none}
+.tabpage.active{display:block}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+
+fieldset{
+  border:1px solid var(--bd);border-radius:8px;background:var(--bg2);
+  padding:10px 12px;margin:0 0 12px;
+}
+legend{padding:0 6px;color:var(--acc);font-weight:600}
+
+label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:4px 0}
+input[type=text],input[type=number],select{
+  background:var(--bg3);border:1px solid var(--bd);color:var(--fg);
+  border-radius:5px;padding:4px 8px;min-width:90px;width:140px;font:inherit;
+}
+input[type=number]{width:100px}
+input:focus,select:focus{outline:1px solid var(--acc)}
+
+.tbl{width:100%;border-collapse:collapse}
+.tbl th,.tbl td{border-bottom:1px solid var(--bd);padding:4px 6px;text-align:left;font-weight:400}
+.tbl th{color:var(--fg2);font-size:12px}
+.tbl input{width:100%}
+
+.regs{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px}
+details summary{cursor:pointer;color:var(--fg2);margin:6px 0}
+
+button{
+  background:var(--bg3);border:1px solid var(--bd);color:var(--fg);
+  border-radius:6px;padding:5px 12px;cursor:pointer;font:inherit;
+}
+button:hover{border-color:var(--acc)}
+button.primary{background:var(--acc);border-color:var(--acc);color:#04121f;font-weight:600}
+button.danger{border-color:var(--err);color:var(--err)}
+button:disabled{opacity:.4;cursor:default}
+
+.footerbar{display:flex;align-items:center;gap:12px;margin-top:8px}
+.msg{color:var(--fg2);font-size:12px}
+.hint{color:var(--fg2);font-size:12px}
+
+/* ---- работа ---- */
+.work{display:grid;grid-template-columns:270px 1fr;grid-template-areas:"conn view" "manual manual";gap:12px}
+.conn{grid-area:conn}
+.view{grid-area:view;display:flex;flex-direction:column}
+.manual{grid-area:manual}
+
+.viewhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.chk{display:flex;align-items:center;gap:6px;margin:0}
+.canvaswrap{
+  position:relative;flex:1 1 auto;min-height:340px;
+  border:1px solid var(--bd);border-radius:6px;background:#0b0f14;overflow:hidden;
+}
+body.light .canvaswrap{background:#f7fafd}
+#view3d{width:100%;height:100%;display:block;cursor:crosshair}
+.viewfoot{display:flex;align-items:center;gap:10px;margin-top:8px}
+.udpind{
+  padding:3px 10px;border-radius:12px;font-size:12px;
+  border:1px solid var(--bd);color:var(--fg2);
+}
+.udpind.active{border-color:var(--acc2);color:var(--acc2);animation:pulse .8s infinite}
+@keyframes pulse{50%{opacity:.45}}
+
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--err);margin-right:6px}
+.dot.ok{background:var(--acc2)}
+.switch{position:relative;display:inline-block;width:48px;height:24px;margin:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--bg3);border:1px solid var(--bd);border-radius:12px;transition:.2s;cursor:pointer}
+.slider:before{content:"";position:absolute;height:16px;width:16px;left:3px;top:3px;background:var(--fg2);border-radius:50%;transition:.2s}
+.switch input:checked + .slider{border-color:var(--acc2)}
+.switch input:checked + .slider:before{transform:translateX(24px);background:var(--acc2)}
+.err{color:var(--err);font-size:12px;min-height:16px}
+
+/* ---- ручное управление ---- */
+.manual{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.axis{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px}
+.axis h4{margin:0 0 8px;color:var(--acc)}
+.axis .addr{color:var(--fg2);font-weight:400;font-size:12px}
+.readouts{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;font-size:13px}
+.readouts b{color:var(--acc2)}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.num{width:80px}
+.io{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.io-title{display:block;color:var(--fg2);font-size:12px;margin-bottom:4px}
+.leds{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.led{
+  font-size:9px;text-align:center;padding:3px 0;border-radius:3px;
+  background:var(--bg2);border:1px solid var(--bd);color:var(--fg2);
+}
+.led.on{background:var(--acc2);border-color:var(--acc2);color:#04121f;font-weight:700}
+.leds.out .led{cursor:pointer}
+.leds.out .led:hover{border-color:var(--acc)}
+
+/* ---- попап ---- */
+.popup{
+  position:absolute;background:var(--bg2);border:1px solid var(--bd);
+  border-radius:8px;padding:10px;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,.45);
+  z-index:10;font-size:13px;
+}
+.popup.hidden{display:none}
+.popup h5{margin:0 0 6px;color:var(--acc);font-size:13px}
+.popup .row{justify-content:flex-start}
+
+@media (max-width:1500px){
+  .work{grid-template-columns:1fr;grid-template-areas:"conn" "view" "manual"}
+  .manual{grid-template-columns:1fr}
+  .grid2{grid-template-columns:1fr}
+}
