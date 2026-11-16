@@ -1,6 +1,6 @@
 'use strict';
 
-/* ============================ состояние ============================ */
+/* ============================ state ============================ */
 let cfg = null;
 let st  = { drives: [], trail: [], scan: {}, posX: 0, posY: 0 };
 let prevUdpSent = -1;
@@ -9,7 +9,7 @@ let lastUdpAt = 0;
 const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
-/* ============================ утилиты ============================ */
+/* ============================ utilities ============================ */
 function getPath(o, p){
   return p.split('.').reduce((a,k)=> (a==null? a : a[k]), o);
 }
@@ -32,7 +32,7 @@ function readEl(el){
 }
 function elFor(path){ return document.querySelector(`[data-path="${path}"]`); }
 
-/* ============================ табы ============================ */
+/* ============================ tabs ============================ */
 $$('.tab').forEach(t => t.addEventListener('click', () => {
   $$('.tab').forEach(x => x.classList.remove('active'));
   $$('.tabpage').forEach(x => x.classList.remove('active'));
@@ -41,13 +41,13 @@ $$('.tab').forEach(t => t.addEventListener('click', () => {
   if (t.dataset.tab === 'work') setTimeout(resizeCanvas, 30);
 }));
 
-/* ============================ конфигурация ============================ */
+/* ============================ configuration ============================ */
 function bindInputs(){
   $$('[data-path]').forEach(el => {
     const p = el.dataset.path;
     const commit = () => {
       setPath(cfg, p, readEl(el));
-      // синхронизация дублирующихся полей в другой вкладке
+      // sync duplicated fields located on other tabs
       $$(`[data-path="${p}"]`).forEach(other => {
         if (other === el) return;
         if (other.type === 'checkbox') other.checked = !!getPath(cfg, p);
@@ -87,9 +87,9 @@ async function saveConfig(msgEl){
   if (r.ok){
     cfg = await r.json();
     applyConfig();
-    msgEl.textContent = 'Сохранено ' + new Date().toLocaleTimeString();
+    msgEl.textContent = 'Saved ' + new Date().toLocaleTimeString();
   } else {
-    msgEl.textContent = 'Ошибка: ' + (await r.json()).error;
+    msgEl.textContent = 'Error: ' + (await r.json()).error;
   }
   setTimeout(()=> msgEl.textContent = '', 4000);
 }
@@ -100,7 +100,7 @@ $('#saveTask').addEventListener('click', () => saveConfig($('#taskMsg')));
 $('#routePreview').addEventListener('click', async () => {
   const pts = await (await fetch('/api/route')).json();
   const last = pts.length ? pts[pts.length-1] : {x:0,y:0};
-  $('#routeInfo').textContent = `точек: ${pts.length}, конец (${last.x.toFixed(0)}; ${last.y.toFixed(0)})`;
+  $('#routeInfo').textContent = `points: ${pts.length}, end (${last.x.toFixed(0)}; ${last.y.toFixed(0)})`;
 });
 
 /* ============================ SSE ============================ */
@@ -110,33 +110,33 @@ function connectSSE(){
     try { st = JSON.parse(e.data); } catch(_) { return; }
     updateUI();
   };
-  es.onerror = () => { /* EventSource переподключается сам */ };
+  es.onerror = () => { /* EventSource reconnects automatically */ };
 }
 
-/* ============================ обновление UI ============================ */
+/* ============================ UI update ============================ */
 function updateUI(){
-  // мини-индикаторы
+  // mini indicators
   const miniConn = $('#miniConn');
-  miniConn.textContent = 'связь: ' + (st.connected ? 'есть' : 'нет');
+  miniConn.textContent = 'link: ' + (st.connected ? 'up' : 'down');
   miniConn.className = 'pill ' + (st.connected ? 'on' : 'off');
 
   const udpActive = st.udpOn;
   const miniUdp = $('#miniUdp');
-  miniUdp.textContent = 'UDP: ' + (udpActive ? 'вкл' : 'выкл');
+  miniUdp.textContent = 'UDP: ' + (udpActive ? 'on' : 'off');
   miniUdp.className = 'pill ' + (udpActive ? 'on' : 'off');
 
-  // подключение
+  // connection indicators (header)
   $('#dotServer').className = 'dot' + (st.serverUp ? ' ok' : '');
   $('#dotClient').className = 'dot' + (st.clientUp ? ' ok' : '');
-  $('#txtServer').textContent = st.serverUp ? 'доступен' : 'недоступен';
-  $('#txtClient').textContent = st.clientUp ? 'доступен' : 'недоступен';
+  $('#dotServer').title = 'Modbus server (ping): ' + (st.serverUp ? 'reachable' : 'unreachable');
+  $('#dotClient').title = 'UDP client (ping): ' + (st.clientUp ? 'reachable' : 'unreachable');
 
   const sw = $('#connSwitch');
   if (sw.checked !== !!st.connected) sw.checked = !!st.connected;
-  $('#connText').textContent = st.connected ? 'Подключено' : 'Отключено';
+  $('#connText').textContent = st.connected ? 'Connected' : 'Disconnected';
   $('#linkErr').textContent = st.linkErr || '';
 
-  // UDP индикация
+  // UDP indication
   const ind = $('#udpInd');
   ind.className = 'udpind' + (udpActive ? ' active' : '');
   if (st.udpSent !== prevUdpSent){
@@ -145,13 +145,13 @@ function updateUI(){
   }
   if (udpActive && Date.now() - lastUdpAt < 400) ind.classList.add('active');
 
-  // сканирование
+  // scanning
   const s = st.scan || {};
   $('#scanInfo').textContent = s.total
-      ? `${s.running ? (s.paused ? 'пауза' : 'выполняется') : 'остановлено'} — ${s.index}/${s.total}`
+      ? `${s.running ? (s.paused ? 'paused' : 'running') : 'stopped'} — ${s.index}/${s.total}`
       : '';
 
-  // приводы
+  // drives
   (st.drives || []).forEach(d => {
     const a = (d.name || '').toUpperCase();
     if (a !== 'X' && a !== 'Y') return;
@@ -161,7 +161,7 @@ function updateUI(){
     set('#cur-' + a, (+d.current).toFixed(0));
     set('#flt-' + a, '0x' + (d.fault>>>0).toString(16).padStart(4,'0'));
     set('#sts-' + a, '0x' + (d.status>>>0).toString(16).padStart(4,'0'));
-    set('#unit-' + a, 'адрес ' + d.unitId + (d.online ? '' : ' • нет связи'));
+    set('#unit-' + a, 'address ' + d.unitId + (d.online ? '' : ' • no link'));
     leds('#in-' + a, d.inputs);
     leds('#out-' + a, d.outputs);
   });
@@ -197,7 +197,7 @@ function leds(sel, value){
   Array.from(c.children).forEach((el,i) => el.classList.toggle('on', !!(v & (1<<i))));
 }
 
-/* ============================ команды ============================ */
+/* ============================ commands ============================ */
 async function manual(body){
   try {
     const r = await fetch('/api/manual', {
@@ -211,14 +211,19 @@ async function manual(body){
 
 $('#connSwitch').addEventListener('change', async e => {
   const on = e.target.checked;
-  const r = await fetch('/api/connect', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({on})
-  });
-  if (!r.ok){
+  try {
+    const r = await fetch('/api/connect', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({on})
+    });
+    if (!r.ok){
+      e.target.checked = false;
+      $('#linkErr').textContent = (await r.json()).error || 'connection error';
+    }
+  } catch(err){
     e.target.checked = false;
-    $('#linkErr').textContent = (await r.json()).error || 'ошибка подключения';
+    $('#linkErr').textContent = 'connection error';
   }
 });
 
@@ -275,9 +280,9 @@ const ctx = canvas.getContext('2d');
 let dpr = window.devicePixelRatio || 1;
 
 const view = {
-  angle: 0,          // вращение вокруг оси цилиндра, рад
-  pos: 0,            // смещение вдоль оси, мм (от центра трубы)
-  dist: 0,           // расстояние камеры от оси; 0 = авто
+  angle: 0,          // rotation around the cylinder axis, rad
+  pos: 0,            // offset along the axis, mm (from the pipe center)
+  dist: 0,           // camera distance from the axis; 0 = auto
   fov: 55 * Math.PI/180,
   follow: false
 };
@@ -297,7 +302,7 @@ function resizeCanvas(){
 }
 window.addEventListener('resize', resizeCanvas);
 
-/* векторная алгебра */
+/* vector algebra */
 const V = {
   add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],
   sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],
@@ -321,7 +326,7 @@ function sceneParams(){
   return {L, D, R, C, vertical, A, E1, E2};
 }
 
-// точка на поверхности: u — мм от начала трубы, theta — угол
+// point on the surface: u — mm from the pipe start, theta — angle
 function surf(P, u, theta){
   const s = u - P.L/2;
   const c = Math.cos(theta), sn = Math.sin(theta);
@@ -391,7 +396,7 @@ function machineToUTheta(P, x, y){
   return { u: x, theta: (2*y / P.D) };
 }
 
-/* ---------- отрисовка ---------- */
+/* ---------- rendering ---------- */
 function draw3D(){
   resizeCanvas();
   const W = canvas.clientWidth, H = canvas.clientHeight;
@@ -402,19 +407,19 @@ function draw3D(){
 
   ctx.clearRect(0, 0, W, H);
 
-  // фон-сетка «пола» не нужен — рисуем торцы
+  // no floor grid needed — draw the end faces
   const gridStep = niceStep(P.L / 12);
   const angStep  = Math.PI / 6;   // 30°
 
-  // --- сетка на поверхности ---
+  // --- grid on the surface ---
   ctx.lineWidth = 1;
   ctx.strokeStyle = 'rgba(120,160,200,0.28)';
 
-  // кольца
+  // rings
   for (let u = 0; u <= P.L + 1e-6; u += gridStep){
     strokeArc(P, cam, u, 64);
   }
-  // продольные линии
+  // longitudinal lines
   for (let k = 0; k < 12; k++){
     const th = k * angStep;
     const segs = 48;
@@ -432,13 +437,13 @@ function draw3D(){
     ctx.stroke();
   }
 
-  // --- контур трубы (торцы) ---
+  // --- pipe contour (end faces) ---
   ctx.strokeStyle = 'rgba(150,190,230,0.75)';
   ctx.lineWidth = 1.6;
   strokeArc(P, cam, 0, 96);
   strokeArc(P, cam, P.L, 96);
 
-  // --- ось ---
+  // --- axis ---
   const a0 = project(axisPoint(P, 0), cam);
   const a1 = project(axisPoint(P, P.L), cam);
   if (a0 && a1){
@@ -448,16 +453,16 @@ function draw3D(){
     ctx.setLineDash([]);
   }
 
-  // --- маршрут сканирования ---
+  // --- scan route ---
   drawRoute(P, cam, false);
-  // --- пройденный путь ---
+  // --- traveled path ---
   drawRoute(P, cam, true);
 
-  // --- тележка ---
+  // --- cart ---
   const mp = machineToUTheta(P, st.posX || 0, st.posY || 0);
   drawMarker(P, cam, mp.u, mp.theta);
 
-  // рамка-индикация UDP
+  // UDP indication frame
   if (st.udpOn){
     ctx.strokeStyle = 'rgba(40,199,111,0.6)';
     ctx.lineWidth = 2;
@@ -529,7 +534,7 @@ function drawMarker(P, cam, u, theta){
   ctx.strokeStyle = '#0b0f14';
   ctx.stroke();
 
-  // крестик-выноска
+  // crosshair callout
   ctx.beginPath();
   ctx.moveTo(s[0]-14, s[1]); ctx.lineTo(s[0]-8, s[1]);
   ctx.moveTo(s[0]+8, s[1]);  ctx.lineTo(s[0]+14, s[1]);
@@ -551,7 +556,7 @@ function renderLoop(){
   requestAnimationFrame(renderLoop);
 }
 
-/* ---------- управление камерой ---------- */
+/* ---------- camera control ---------- */
 canvas.addEventListener('mousedown', e => {
   dragging = true; lastX = e.clientX; lastY = e.clientY;
 });
@@ -589,7 +594,7 @@ window.addEventListener('keydown', e => {
   e.preventDefault();
 });
 
-/* ---------- выбор точки на цилиндре ---------- */
+/* ---------- point picking on the cylinder ---------- */
 function pickPoint(sx, sy){
   const P = sceneParams();
   const cam = makeCam(P);
@@ -636,13 +641,13 @@ canvas.addEventListener('click', e => {
 function showPopup(px, py, pt){
   const pop = $('#pickPopup');
   pop.innerHTML = `
-    <h5>Точка на трубе</h5>
-    <div>X = <b>${pt.x.toFixed(1)}</b> мм</div>
-    <div>Y = <b>${pt.y.toFixed(1)}</b> мм</div>
+    <h5>Point on the pipe</h5>
+    <div>X = <b>${pt.x.toFixed(1)}</b> mm</div>
+    <div>Y = <b>${pt.y.toFixed(1)}</b> mm</div>
     <div class="row">
-      <button id="pkGo">Ехать к точке</button>
-      <button id="pkHome">Привязка</button>
-      <button id="pkClose">Отмена</button>
+      <button id="pkGo">Move to point</button>
+      <button id="pkHome">Home</button>
+      <button id="pkClose">Cancel</button>
     </div>`;
   pop.style.left = Math.min(px + 10, canvas.clientWidth - 210) + 'px';
   pop.style.top  = Math.min(py + 10, canvas.clientHeight - 140) + 'px';
@@ -661,7 +666,7 @@ function showPopup(px, py, pt){
   $('#pkClose').onclick = () => pop.classList.add('hidden');
 }
 
-/* ============================ запуск ============================ */
+/* ============================ startup ============================ */
 (async function init(){
   await loadConfig();
   bindInputs();

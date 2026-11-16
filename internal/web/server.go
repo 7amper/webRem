@@ -57,7 +57,7 @@ func writeErr(w http.ResponseWriter, code int, msg string) {
 	writeJSON(w, code, map[string]string{"error": msg})
 }
 
-// --- конфигурация -------------------------------------------------------------
+// --- configuration -------------------------------------------------------------
 
 func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -66,7 +66,7 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost, http.MethodPut:
 		var c config.Config
 		if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
-			writeErr(w, 400, "неверный JSON: "+err.Error())
+			writeErr(w, 400, "invalid JSON: "+err.Error())
 			return
 		}
 		if err := s.cfg.Set(c); err != nil {
@@ -75,21 +75,21 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		}
 		writeJSON(w, 200, s.cfg.Get())
 	default:
-		writeErr(w, 405, "метод не поддерживается")
+		writeErr(w, 405, "method not supported")
 	}
 }
 
-// --- состояние ------------------------------------------------------------------
+// --- state ------------------------------------------------------------------
 
 func (s *Server) handleState(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, s.ctrl.State())
 }
 
-// SSE-поток состояния (10 Гц)
+// SSE state stream (10 Hz)
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	fl, ok := w.(http.Flusher)
 	if !ok {
-		writeErr(w, 500, "поток не поддерживается")
+		writeErr(w, 500, "streaming not supported")
 		return
 	}
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -101,7 +101,7 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
-	// начальное состояние
+	// initial state
 	_, _ = w.Write([]byte(": connected\n\n"))
 	fl.Flush()
 
@@ -118,7 +118,7 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// --- подключение ----------------------------------------------------------------
+// --- connection ----------------------------------------------------------------
 
 type connectReq struct {
 	On bool `json:"on"`
@@ -126,7 +126,7 @@ type connectReq struct {
 
 func (s *Server) handleConnect(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		writeErr(w, 405, "метод не поддерживается")
+		writeErr(w, 405, "method not supported")
 		return
 	}
 	var req connectReq
@@ -141,7 +141,7 @@ func (s *Server) handleConnect(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]bool{"connected": s.ctrl.Connected()})
 }
 
-// --- ручное управление ----------------------------------------------------------
+// --- manual control ----------------------------------------------------------
 
 type manualReq struct {
 	Axis    string  `json:"axis"`
@@ -153,7 +153,7 @@ type manualReq struct {
 
 func (s *Server) handleManual(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		writeErr(w, 405, "метод не поддерживается")
+		writeErr(w, 405, "method not supported")
 		return
 	}
 	var req manualReq
@@ -179,7 +179,7 @@ func (s *Server) handleManual(w http.ResponseWriter, r *http.Request) {
 	case "outputs":
 		err = s.ctrl.SetOutputs(req.Axis, req.Outputs)
 	default:
-		writeErr(w, 400, "неизвестная команда: "+req.Action)
+		writeErr(w, 400, "unknown command: "+req.Action)
 		return
 	}
 	if err != nil {
@@ -189,7 +189,7 @@ func (s *Server) handleManual(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]string{"status": "ok"})
 }
 
-// --- сканирование ---------------------------------------------------------------
+// --- scanning ---------------------------------------------------------------
 
 type scanReq struct {
 	Action string `json:"action"` // start | stop | pause | resume | reset
@@ -197,7 +197,7 @@ type scanReq struct {
 
 func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		writeErr(w, 405, "метод не поддерживается")
+		writeErr(w, 405, "method not supported")
 		return
 	}
 	var req scanReq
@@ -223,7 +223,7 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 		s.ctrl.ResetScan()
 		s.ctrl.SetUDP(false)
 	default:
-		writeErr(w, 400, "неизвестное действие: "+req.Action)
+		writeErr(w, 400, "unknown action: "+req.Action)
 		return
 	}
 	writeJSON(w, 200, map[string]string{"status": "ok"})
